@@ -16,7 +16,7 @@ Ice Ed is a free tool to create ice cream recipes and calculate the ideal mixtur
 - Tools for PAC and POD calculation of an ingredient
 
 ## How to use
-Just download the html file and load it into your browser. No installation required.
+Just download the html file and load it into your browser or run [online](https://joernmueller.github.io/Ice-Ed/IceEd.html).
 Ice Ed is making use of some contemporary web technologies and will not run in outdated browsers like the Internet Explorer. In general the usage of the latest stable release of the browser of your choice is recommended.
 
 ## Support & Feedback
