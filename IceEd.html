@@ -4,7 +4,7 @@ Ice Ed – The friendly Ice Cream Editor
 
 Some notes to developers:
 - This tool was designed with the goal in mind to work and being distributed as a single file without requiring any further dependencies, resources or even internet access. Any requests for external resources are considered optional and should not break the usability of the tool in case of failure. I recommend to maintain this guideline to ensure this tool can be used, passed on and extended without being dependent of any additional infrastructure.
-- The decision to implement this tool in html/javascript was primarily motivated by the reasoning to lower the barriers for changes and additions as much as possible and having a platform independent GUI available without any externals while I´m personally coming from C++ with rather little experience in web development. So if any portions of the code might look somewhat C-ish or do not met established best-practices for JS this is the reason why. Please feel free to improve or to rise an issue on GitHub.
+- The decision to implement this tool in html/javascript was primarily motivated by the reasoning to lower the barriers for changes and additions as much as possible and having a platform independent GUI available without any externals while I´m personally coming from C++ with rather little experience in web development. So if any portions of the code might look somewhat C-ish or do not meet established best-practices for JS this is the reason why. Please feel free to improve or to rise an issue on GitHub.
 
 Please read carefully the following terms and conditions before you download and/or use this software.
 The authors hereby grant you a non-exclusive, non-transferable, free of charge right to copy, modify, merge, publish, distribute, and sublicense the software for the sole purpose of non-commercial usage.
@@ -14,24 +14,26 @@ You understand and agree that the authors are under no obligation to provide eit
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the software.
 -->
 <!DOCTYPE html>
-<html><head>
+<html lang="en"><head>
     <title>Ice Ed – The friendly Ice Cream Editor</title>
     <meta charset="utf-8">
     <meta name="author" content="J. Mueller">
     <meta name="description" content="A user friendly editor to create ice cream recipes and calculate the ideal mixture.">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
     
     :root {
-        --background: #fff;
-        --light-grey: #dcdcdc;
-        --mid-grey: #999;
-        --accent: #337099;
-        --accent2: #349898;
-        --contrast: #ff8000;
+        --background: rgb(255, 255, 255);
+        --light-grey: rgb(220, 220, 220);
+        --mid-grey: rgb(153, 153, 153);
+        --accent: rgb(36, 115, 168);
+        --accent2: rgb(36, 168, 168);
+        --contrast: rgb(255, 128, 0);
 
         --light-line: 1px solid var(--light-grey);
         --mid-line: 1px solid var(--mid-grey);
-        --knob-size: 0.75em;
+        --focus-line: 1px solid rgba(36, 115, 168, 0.33); /*rgb according to accent*/
+        --knob-size: 1em;
     }
     body{
         font-family: 'Book Antiqua', Cambria, Garamond, Georgia, serif;
@@ -85,15 +87,25 @@ The above copyright notice and this permission notice shall be included in all c
         font-size: inherit;
         color: inherit;
     }
+    button:focus,
+    input:focus,
+    optgroup:focus,
+    select:focus,
+    textarea:focus {
+        outline: var(--focus-line);
+    }
+
     button{
         color: var(--accent);
         border: var(--mid-line);
         background-color: var(--light-grey);
     }
+    select:disabled,
     button:disabled{
         color: var(--mid-grey);
+        background-color: var(--light-grey);
     }
-    button:hover
+    button:hover:enabled
     {
         border-color: var(--accent);
         background-color: var(--background);
@@ -106,24 +118,38 @@ The above copyright notice and this permission notice shall be included in all c
     }
 
     /*https://www.cssportal.com/style-input-range/*/
-    input[type=range]
-    {
+    input[type=range] {
+        -webkit-appearance: none;
         background: var(--light-grey);
         height: 2px;
     }
-    input[type=range]::-webkit-slider-thumb,
+    input[type=range]:focus {
+        outline: none;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+        -webkit-appearance: none;
+        border: 0px;
+        height: 2px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: var(--knob-size);
+        height: var(--knob-size);
+        background: var(--accent);
+        border: 0px;
+        border-radius: var(--knob-size);
+        margin-top: calc( var(--knob-size) * -0.5 );
+    }
+
     input[type=range]::-moz-range-thumb
     {
         background: var(--accent);
         height: var(--knob-size);
         width: var(--knob-size);
+        border-radius: var(--knob-size);
+        border-color: var(--accent);
     }
-    input[type=range]::-webkit-slider-runnable-track,
-    input[type=range]::-moz-range-track,
-    input[type=range]::-ms-track
-    {
-        height: 6px;
-    }/**/
+
 
     table {
         text-align: left;
@@ -142,6 +168,14 @@ The above copyright notice and this permission notice shall be included in all c
     table.layout>tbody>tr>td {
         border: none;
     }
+
+    #tblRecipe thead th {
+        cursor:default;
+    }
+    #tblRecipe thead th:hover
+    {
+        color: var(--accent);
+    }
     #tblRecipe *:nth-child(1n+1)>input
     {
         max-width: 5em;
@@ -159,6 +193,28 @@ The above copyright notice and this permission notice shall be included in all c
         max-width: 24em;
     }
 
+    #NotesGraph
+    {
+        display: flex;
+        flex-wrap: wrap;
+        flex-direction: row;
+        justify-content: start;
+        align-content: start;
+    } 
+    #NotesGraph>div {
+        flex: 0 0 auto;
+        margin: 10px;
+    }
+    #taRecipeNotes{
+        border: var(--light-line);
+        margin: 0px;
+    }
+    [contentEditable=true]:empty:not(:focus):before{
+        color: var(--mid-grey);
+        content:attr(data-text);
+    }
+
+
     .tab {
         overflow: hidden;
         border: var(--light-line);        
@@ -167,7 +223,7 @@ The above copyright notice and this permission notice shall be included in all c
         /* Style the buttons that are used to open the tab content */
         /*.tab button {*/
         .tab .tablink, .tab .tabbutton{
-            font-size: 133%;
+            font-size: 150%;
             background-color: var(--light-grey);
             float: left;
             border: none;
@@ -186,14 +242,11 @@ The above copyright notice and this permission notice shall be included in all c
                 color: var(--accent);
                 text-decoration: underline overline;
             }
-        .modal-content button
-        {
-            font-size: 133%;
-            background-color: inherit;
-            padding: 14px 8px;
-            margin: 0px 4px 0px 4px;
-            display: table-cell;
-        }
+            #ToolTabBar .tablink{
+                font-size: 125%;
+                padding: 8px;
+            }
+
     
 
     
@@ -213,16 +266,19 @@ The above copyright notice and this permission notice shall be included in all c
         margin: 0 auto;
         max-width: 100%;
     }
+    #Tools{
+        padding: 0px 0px;
+    }
 
-    #tblIngredientsList td:nth-child(1n+2)>input
-    {
+    #tblIngredientsList td:nth-child(1n+2)>input {
         max-width: 3em;
     }
-    #pacPodTable td:nth-child(1n+2)>input
-    {
+    #pacPodTable td:nth-child(1n+2)>input {
         max-width: 3.5em;
     }
-
+    #yolkTable input, #yolkTable select{
+        width: 8em;
+    }
 
     #About div
     {
@@ -258,6 +314,14 @@ The above copyright notice and this permission notice shall be included in all c
         left: 50%;
         transform: translate(-50%, -50%);
     }
+    .modal-content button
+    {
+        font-size: 133%;
+        background-color: inherit;
+        padding: 14px 8px;
+        margin: 0px 4px 0px 4px;
+        display: table-cell;
+    }
     .modal-content table
     {
         margin-left: auto;
@@ -275,7 +339,6 @@ The above copyright notice and this permission notice shall be included in all c
         height: var(--knob-size);
         margin-left: 0.33em;
     }
-
 
     footer {
         position: fixed;
@@ -303,6 +366,30 @@ The above copyright notice and this permission notice shall be included in all c
         {
             border: none;
         }
+        #Recipe>h2:first-of-type {
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+        }
+        #RecipeData>tbody>tr>td:nth-child(2){
+            padding-left: 4em;
+        }
+
+        #NotesGraph
+        {
+            display: block;
+        }
+        #taRecipeNotes{
+            border: none;
+        }
+        [contentEditable=true]:empty:not(:focus):before{
+            display: none;
+        }
+        #cvFreezingGraph
+        {
+            margin-left: -35px;
+        }
+
 
         ::-webkit-input-placeholder /* multiple pseudo-elementss can not be combined in one rule */
         { /* WebKit browsers */
@@ -337,15 +424,17 @@ The above copyright notice and this permission notice shall be included in all c
 </head>
 <body>
     <div class="tab" id="tabbar">
-        <button class="tablink">Recipe</button>
-        <button class="tablink">Ingredients List</button>
-        <button class="tablink">Tools</button>
-        <button class="tablink">Links</button>
+        <button class="tablink" data-tabgrp="main" data-tabid="Recipe">Recipe</button>
+        <button class="tablink" data-tabgrp="main" data-tabid="Ingredients List">Ingredients List</button>
+        <button class="tablink" data-tabgrp="main" data-tabid="Tools">Tools</button>
+        <button class="tablink" data-tabgrp="main" data-tabid="Links">Links</button>
         <button class="tabbutton" id="btnDownload" title="Save a copy of Ice Ed including all current ingredient data.">Download</button>
-        <button class="tablink">About</button>
+        <button class="tablink" data-tabgrp="main" data-tabid="About">Info &amp; FAQ</button>
     </div>
 
-    <div id="Recipe" class="tabcontent">
+    <div id="JavscriptWarning" style="font-size: 300%; color:red;">Please enable Javascript to run Ice Ed</div>
+
+    <div id="Recipe" class="tabcontent" data-tabgrp="main">
         <p>
             <button type="button" id="btnNewRecipe" title="Starts the creatio of a new recipe. The current recipe is stored in the recent recipes list as long as the page is not closed.">⭐ New</button>
             <button type="button" id="btnStoreAsIngredient" title="Store this mixture with its result values to the ingredients list. Use this feature for bases, preparations and semi-products.">💾 Store as ingredient</button>
@@ -354,19 +443,22 @@ The above copyright notice and this permission notice shall be included in all c
             <button type="button" id="btnLoadRecipe" title="Loads a recipe from a file. The current recipe is stored in the recent recipes list as long as the page is not closed.">📁 Load from file ...</button>
             <button type="button" id="btnPrintRecipe" title="Opens the browsers print dialog.">🖨️ Print ...</button>
         </p>
-        <h2><label for="edRecipeName">Recipe for </label>
+        <h2>
             <input type="text" id="edRecipeName" placeholder="Ice Cream Name">
             <span id="ModifiedIndicator" class="ModifiedIndicator" title="Recipe contains unsaved modifications."></span>
         </h2>
         <p>
             </p><table class="layout">
-                <tbody><tr> <td> <label for="slServingTemperature">Serving Temperature </label></td> <td> <input id="slServingTemperature" class="slider" min="-35" max="-5" type="range" value="-18"> <span id="lbServingTemperature"></span> </td> </tr>
-                <tr> <td> <label for="slHardness">Hardness </label></td> <td> <input id="slHardness" class="slider" min="0" max="90" type="range" value="75"> <span id="lbHardness"></span> </td> </tr>
-                <tr> <td> 
-                    <label for="tgtSelection">Type</label> </td> <td> 
-                    <select id="tgtSelection"></select>
-                    <button type="button" id="btnCategorizeRecipe" title="Finds the type of ice cream that matches the current mixture best.">Categorize Recipe</button> 
-                </td> </tr>
+                <tbody>
+                    <tr> <td> 
+                        <label for="tgtSelection">Type</label> </td> <td> 
+                            <select id="tgtSelection" title="Select an ice cream type to set the target parameters for the mixture"></select>
+                            <button type="button" id="btnCategorizeRecipe" title="Finds the type of ice cream that matches the current mixture best.">Categorize Recipe</button> 
+                    </td> </tr>
+                    <tr> <td> <label for="slServingTemperature">Serving Temperature </label></td> <td> <input id="slServingTemperature" class="slider" min="-35" max="-5" type="range" value="-18" title="The temperature the ice cream is stored at before serving."> <span id="lbServingTemperature"></span> </td> </tr>
+                    <tr> <td> <label for="slHardness">Hardness </label></td> <td> <input id="slHardness" class="slider" min="0" max="90" type="range" value="75" title="The hardness of the mixture at serving temperature is determined by the ratio of frozen water."> <span id="lbHardness"></span> </td> </tr>
+                    <tr> <td> <label for="slOverrun">Overrun </label></td> <td> <input id="slOverrun" class="slider" min="0" max="150" step="1" type="range" value="0.3" title="Overrun describes the percentage of air incorporated during the churning in relation to the unfrozen mixture."> <span id="lbOverrun"></span> </td> </tr>
+                    <tr class="noprint"> <td> <label for="slScoopSize">Scooper Size </label></td> <td> <input id="slScoopSize" class="slider" min="0" max="1" step="1" type="range" value="1" title="Standard scooper sizes are defined by the volume of the bowl. So the scoops volume doubles this size."> <span id="lbScoopSize"></span> </td> </tr>
             </tbody></table>
         <p></p>
         <table class="layout" id="RecipeData">
@@ -381,57 +473,76 @@ The above copyright notice and this permission notice shall be included in all c
                     <p id="RecipeHints"></p>
                     <p class="noprint">
                         <b>Scale</b><br>
-                        <input name="Amount" placeholder="New Amount" pattern="^[0-9]+([.,][0-9]+)?$" step="any" id="edTargetWeight"><br>
+                        <input name="Amount" placeholder="New Amount" pattern="^[0-9]+([.,][0-9]+)?$" step="any" id="edTargetWeight" style="width: 6em;">
+                        <select id="selTargetWeightMode">
+                            <option>L</option>
+                            <option>g</option>
+                            <option>Scoops</option>
+                        </select><br>
                         <label style="font-weight: normal;"> <input type="checkbox" id="cbxScaleByIngredient" onclick="ToggleIngredientScale(event);"> by Ingredient</label><br>
-                        <button id="btnScale" title="Scale">Scale</button>                        
+                        <button id="btnScale" title="Adjust the recipes yield by weight, volume, scoops or by the amount of an ingredient.">Scale</button>                        
                     </p>
                     <p class="noprint">
                         <b>Optimize</b><br>
-                        <button title="Optimize for Mean" id="btnOptimizeMean">Mean</button>
-                        <button title="Optimize for Range" id="btnOptimizeRange">Range</button>
-                        <button title="Restore" id="btnRestoreRecipe">Restore</button>
+                        <button title="Optimize for the center of the target interval for each parameter" id="btnOptimizeMean">Mean</button>
+                        <button title="Optimize to hit the target range somewhere for all parameters" id="btnOptimizeRange">Range</button>
+                        <button title="Recover the recipe state as it was before the previous optimization" id="btnRestoreRecipe">Restore</button>
                     </p>
                     <p id="RecipeStack" class="noprint"></p>
                 </td>               
             </tr>
         </tbody></table>
-        <table class="layout">
-            <tbody><tr>
-                <td><textarea id="taRecipeNotes" placeholder="Notes"></textarea></td>
-                <td><canvas id="cvFreezingGraph"></canvas></td>
-            </tr>
-        </tbody></table>
+        <div id="NotesGraph">
+            <div> <div id="taRecipeNotes" data-text="Notes" contentEditable=true></div></div>
+            <div><canvas id="cvFreezingGraph"></canvas></div>
+        </div> 
     </div>
 
-    <div id="Ingredients List" class="tabcontent">
+    <div id="Ingredients List" class="tabcontent" data-tabgrp="main">
         <p>
-            <button type="button" id="btnSaveIngredients">💾 Export</button>
+            <button type="button" id="btnSaveIngredients" title="Saves the current ingredient list to a file">💾 Export</button>
             <input type="file" id="inputLoadIngredients" accept=".iei" style="display: none;">
-            <button type="button" id="btnLoadIngredients">📁 Import</button>
-            <input type="checkbox" id="cbxOverrideIngredients" class="noprint" checked=""> <label for="cbxOverrideIngredients" class="noprint">Override existing</label>
+            <button type="button" id="btnLoadIngredients" title="Loads additional ingredient data from a file. Duplicate ingredients are merged. Conflicting data needs to be resolved manually.">📁 Import</button>
+            <input type="checkbox" id="cbxOverrideIngredients" class="noprint" checked="" title="Duplicate conflicting ingredients are replaced with imported data, manual conflict resolution is skipped.">
+                <label for="cbxOverrideIngredients" class="noprint" title="Duplicate conflicting ingredients are replaced with imported data, manual conflict resolution is skipped.">Override existing</label>
         </p>
         <p>
             <input type="text" id="edIngredientFilter" placeholder="Filter" class="noprint">
-            <button type="button" id="btnClearIngredientsFilter">❌ Clear</button>
+            <button type="button" id="btnClearIngredientsFilter" title="Resets the filter">❌ Clear</button>
         </p>
         <table id="tblIngredientsList"></table>
     </div>
 
-    <div id="Tools" class="tabcontent">
-        <h3>Calculate PAC &amp; POD</h3>
-        <div id="PacPodCalculator"></div>
-        <h3>Calculate PAC from g/mol</h3>
-        <div>
-            <input id="edGMolCalculator" placeholder="g/mol" type="number" min="0" step="any" pattern="[0-9]+([\.,][0-9]+)?"><br>
-            <span id="GMolResult"></span>
+    <div id="Tools" class="tabcontent" data-tabgrp="main">
+
+        <div class="tab" id="ToolTabBar">
+            <button class="tablink" data-tabgrp="tools" data-tabid="PAC/POD">PAC &amp; POD</button>
+            <button class="tablink" data-tabgrp="tools" data-tabid="PacFromMol">PAC from g/mol</button>
+            <button class="tablink" data-tabgrp="tools" data-tabid="Yolk">Yolk</button>
+        </div>
+
+        <div id="PAC/POD" class="tabcontent" data-tabgrp="tools">
+            <h3>Calculate PAC &amp; POD</h3>
+            <div id="PacPodCalculator"></div>
+        </div>
+        <div id="PacFromMol" class="tabcontent" data-tabgrp="tools">
+            <h3>Calculate PAC from g/mol</h3>
+            <div>
+                <input id="edGMolCalculator" placeholder="g/mol" type="number" min="0" step="any" pattern="[0-9]+([\.,][0-9]+)?"><br>
+                <span id="GMolResult"></span>
+            </div>
+        </div>
+        <div id="Yolk" class="tabcontent" data-tabgrp="tools">
+            <h3>Yolk Calculator</h3>            
+            <div id="YolkCalculator"></div>
         </div>
     </div>
 
-    <div id="Links" class="tabcontent">
+    <div id="Links" class="tabcontent" data-tabgrp="main">
         <h2>Links</h2>
     </div>
 
-    <div id="About" class="tabcontent">
+    <div id="About" class="tabcontent" data-tabgrp="main">
         <div>
             
             <h2>Ice Ed – The friendly Ice Cream Editor</h2>
@@ -445,13 +556,14 @@ The above copyright notice and this permission notice shall be included in all c
 
             <h3>Acknowledgments</h3>
             <p>Special thanks go to <i>Robert Kneschke</i> from the <a href="https://www.eis-machen.de" target="_blank" rel="external noopener">Eis machen</a>-Blog for his sound expert advice and valuable recommendations on the UI.</p>
-
+            <p>Also <a href="https://github.com/eckes" target="_blank" rel="external noopener">Eckes</a> contribution to the browser compatibility deserve to be credited.</p>
+            
             <h3>FAQ</h3>
             <p><b>What is the meaning of the beta status?</b><br>This tool is not yet in a final state, so you should be aware of two things. </p><ul>
                 <li>Expect to find some bugs or glitches. If you do, please report them back to me so I can fix them for the first regular release version.</li>
-                <li>Do <b>not</b> expect compatibility between this version and its file formats and t's successors.. Though I will try not to break the backwards compatibility or to provide a conversion feature by all reasonable means, I can not guarantee that the recipe and ingredient data stored with this version will be readable by the next one.</li>
+                <li>Do <b>not</b> expect compatibility between this version and its file formats and t's successors. Though I will try not to break the backwards compatibility or to provide a conversion feature by all reasonable means, I can not guarantee that the recipe and ingredient data stored with this version will be readable by the next one.</li>
             </ul> <p></p>
-            <p><b>What do I have to consider when creating a recipe?</b><br>Actually not much, just add the ingredients and the required amounts and adjust the mixture according to your wishes. There is only one caveat. Only account ingredients that are actually soluted in the mixture, as only they contribute to the mixtures properties. So for example if you are going to add some chocolate chips to your ice cream you should exclude them from the calculation.</p>
+            <p><b>What do I have to consider when creating a recipe?</b><br>Actually not much, just set the desired target type, serving temperature and hardness to configure the target parameters. Then add the ingredients in their required amounts and adjust the mixture according to your wishes. There is only one caveat. Only account ingredients that are actually soluted in the mixture, as only they contribute to the mixtures properties. So for example if you are going to add some chocolate chips to your ice cream you should exclude them from the calculation.</p>
             <p><b>The calculation results I get seem to be odd or differ from the results I get using another tool. What should I do?</b><br>This is most likely caused by some erroneous ingredient data. The best way to address this is to trace back the ingredients that are affecting the wrong result values most and double check the data stored for them in the ingredients list.</p>
             <p><b>How should the optimization feature be used?</b><br>You need to be aware that the optimization algorithm can only aim for the technical parameters, but does not know anything about taste. In some cases this can mean it could choose to add lots of salt to decrease the freezing point or to remove any stabilizers as it is not aware of their contribution to the texture. So the best way to use the automatic optimization is to use the optimization to get an idea of the proportions of ingredients needed to fulfill the technical requirements and use this as a basis to tweak the parameters the algorithm missed.<br>The optimization comes in two flavors:</p><ul>
                 <li><i>Mean</i> is the more aggressive approach, trying to adjust the mixture to hit the center of each target parameter range. I recommend to use this algorithm as the first choice.</li>
@@ -469,10 +581,11 @@ The above copyright notice and this permission notice shall be included in all c
                 When importing ingredient data from the FoodData Central database do not forget to complete the missing data. Although Ice Ed is able to load the complete attributes of an ingredient, most records lack some data fields, so you will have to add them manually.<br>
                 As a last step for creating new ingredients it is recommended to do a sanity check by comparing their values with those of one or two similar items to track any obvious deviations.</p>
             <p><b>How can I keep my added ingredients best?</b><br>You can either use the import/export buttons or you can use the Download link to create a local copy of the tool containing the ingredients list with all current changes.</p>
-            <p><b>Why can´t I use this tool for commercial purposes?</b><br>I made this tool for a target audience of hobbyists and enthusiasts that love making ice cream but do not make a living out of it. In general I, would not mind the tool being used by professional gelatieri as well. But please be aware that the development did not only cost me a good amount of time, but also required me to spend some money for research and testing. So before allowing others to earn money with this tool I would like at least to reimburse my expenses. As soon as I break even I will happily alter the license to a more permissive model (Probably it's going to be GPLv3 or MIT license.) and also might consider adding some features for professional use like price per ball calculation or batch planning.</p>
+            <p><b>Why can´t I use this tool for commercial purposes?</b><br>I made this tool for a target audience of hobbyists and enthusiasts that love making ice cream but do not make a living out of it. In general I would not mind the tool being used by professional gelatieri as well. But please be aware that the development did not only cost me a good amount of time, but also required me to spend some money for research and testing. So before allowing others to earn money with this tool I would like at least to reimburse my expenses. As soon as I break even I will happily alter the license to a more permissive model (Probably it's going to be GPLv3 or MIT license.) and also might consider adding some features for professional use like price per scoop calculation or batch planning.</p>
             <p><b>Which upcoming features are currently planned?</b><br>There are some…</p>
             <p><b>Will there be any translations available, soon?</b><br>Currently this has no priority for development. However, if there should be a merge request of reasonable quality I surely will not reject it.</p>
-            
+
+
             <h3>Support &amp; Feedback</h3>
             For any feature requests, bug reports or contributions, please visit the project page on <a target="_blank" rel="noopener noreferrer" href="https://github.com/JoernMueller/Ice-Ed">GitHub</a> or leave me a note via <a target="_blank" rel="noopener noreferrer" href="https://forms.gle/YuNispk4LXSiks8B9">Google Forms</a> (no login required).
             
@@ -500,7 +613,6 @@ The above copyright notice and this permission notice shall be included in all c
         </div>
     </div>
 
-
     <div id="Modal" class="modal">
         <div class="modal-content">
             <div id="ModalContent">
@@ -514,7 +626,7 @@ The above copyright notice and this permission notice shall be included in all c
 
 <script>
 //=====================================================================================================================================================================
-const VERSION = "0.3.1 beta";
+const VERSION = "0.4.0 beta";
 
 
 
@@ -529,38 +641,47 @@ const RecipeColumns = ["Name", "Amount", "Scale to", ""].concat( RecipeDataColum
 const IngredientDataFields = ["Water", "Sugar", "Fat", "MSNF", "Solids", "PAC", "POD", "kcal"];
 
 // replaceAll is currently not everywhere available. Use this polyfill from https://stackoverflow.com/a/14822579
-String.prototype.replaceAll = String.prototype.replaceAll || function (find, replace) { var str = this; return str.replace(new RegExp(find.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), replace); };
+String.prototype.replaceAll = String.prototype.replaceAll || function (find, replace) { 
+    return this.replace(new RegExp(find.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), replace);
+};
 
 // Init tab handlers
-Array.from(document.getElementsByClassName("tablink")).forEach( tablink => {
-    tablink.onclick=function(event)
-    {
-        Array.from(document.getElementsByClassName("tablink")).forEach(function(tablink) {
+{
+function tabHandler(event)
+{
+    Array.from(document.getElementsByClassName("tablink")).forEach(function(tablink) {
+        if( tablink.dataset.tabgrp == event.currentTarget.dataset.tabgrp )
             tablink.className = tablink.className.replace(" active", "");
-        });
+    });
 
-        Array.from(document.getElementsByClassName("tabcontent")).forEach(function(tabcontent) {
+    Array.from(document.getElementsByClassName("tabcontent")).forEach(function(tabcontent) {
+        if( tabcontent.dataset.tabgrp == event.currentTarget.dataset.tabgrp)
             tabcontent.style.display = "none";
-        });
+    });
+    
+    document.getElementById(event.currentTarget.dataset.tabid).style.display = "block";
+    event.currentTarget.className += " active";
 
-        document.getElementById(this.innerText).style.display = "block";
-        event.currentTarget.className += " active";
-
-        switch( event.currentTarget.textContent )
-        {
-        case "Recipe":
-            DisplayRecipe(); // required to add e.g. new items from ingredients list to drop down edits for recipe ingredient items
-            break;
-        case "Ingredients List":
-            DisplayIngredients();
-            document.getElementById("edIngredientFilter").focus();
-            document.getElementById("edIngredientFilter").select();
-            Info(Object. keys(Ingredients). length + " ingredients loaded");
-            break;
-        }
-    };
+    switch( event.currentTarget.dataset.tabid )
+    {
+    case "Recipe":
+        DisplayRecipe(); // required to add e.g. new items from ingredients list to drop down edits for recipe ingredient items
+        break;
+    case "Ingredients List":
+        DisplayIngredients();
+        document.getElementById("edIngredientFilter").focus();
+        document.getElementById("edIngredientFilter").select();
+        Info(Object. keys(Ingredients). length + " ingredients loaded");
+        break;
+    case "Yolk":
+        InitYolkTable();
+        break;
+    }
+}
+Array.from(document.getElementsByClassName("tablink")).forEach( tablink => {
+    tablink.onclick=tabHandler;
 });
-
+}
 
 class cIngredient
 {
@@ -580,7 +701,7 @@ class cIngredient
             this.Solids = solids;
         if( MSNF > 0.0 )
             this.MSNF = MSNF; // Milk Solids Non-Fat
-        if( PAC > 0.0 )
+        if( Math.abs( PAC ) > 0.0 )
             this.PAC = PAC; // potere anticongelante / anti-freezing power / Freezing point depression factor
         if( POD > 0.0 )
             this.POD = POD;   // potere edulcorante / sweetening power
@@ -600,7 +721,7 @@ var Ingredients = {};
 //  >>> DO NOT EDIT THE INGREDIENT MARKERS! <<<
 /*INGREDIENTS_START_MARKER*/
 Ingredients = JSON.parse('\
-{"Almond Paste (pure)":{"Water":0.0441,"Fat":0.4993,"Sugar":0.0435,"kcal":5.79,"PAC":0.04655618421052632,"POD":0.043141000000000006,"Solids":0.9559},\
+{"Almond Paste (pure)":{"Water":0.0441,"Fat":0.4993,"Sugar":0.0435,"kcal":5.79,"PAC":-0.84,"POD":0.043141000000000006,"Solids":0.9559},\
 "Apple":{"Water":0.8556,"Fat":0.0017000000000000001,"Sugar":0.1039,"kcal":0.52,"Solids":0.14439999999999997,"PAC":0.221,"POD":0.171},\
 "Apricot":{"Water":0.8634999999999999,"Fat":0.0039000000000000003,"Sugar":0.0924,"kcal":0.48,"Solids":0.13650000000000007,"PAC":0.12224569298245615,"POD":0.09147999999999999},\
 "Atomized Glucose DE40":{"Sugar":0.366,"Solids":1,"PAC":0.79,"POD":0.28,"kcal":3.64},\
@@ -612,8 +733,8 @@ Ingredients = JSON.parse('\
 "Buttermilk":{"Water":0.8791,"Fat":0.0331,"Sugar":0.048799999999999996,"kcal":0.62,"Solids":0.12090000000000001,"MSNF":0.08789999999999999,"PAC":0.035,"POD":0.005600000000000001},\
 "Buttermilk, light":{"Water":0.9013,"Fat":0.0088,"Sugar":0.0479,"kcal":0.4,"Solids":0.09870000000000001,"MSNF":0.09,"PAC":0.035,"POD":0.005600000000000001},\
 "Carboxymethyl Cellulose":{"Solids":1,"POD":0.1,"kcal":1.43},\
-"Chocolate, dark":{"Water":0.0075,"Fat":0.332,"Sugar":0.48810000000000003,"kcal":5.28,"Solids":0.9925,"PAC":0.488,"POD":0.488},\
-"Cocoa Powder":{"Water":0.03,"Fat":0.13699999999999998,"Sugar":0.005,"kcal":2.28,"Solids":0.97,"PAC":0.005,"POD":0.005},\
+"Chocolate, dark":{"Water":0.0075,"Fat":0.332,"Sugar":0.48810000000000003,"kcal":5.28,"Solids":0.9925,"PAC":-0.239,"POD":0.488},\
+"Cocoa Powder":{"Water":0.03,"Fat":0.13699999999999998,"Sugar":0.005,"kcal":2.28,"Solids":0.97,"PAC":-1.6,"POD":0.005},\
 "Coconut Milk":{"Water":0.9457,"Fat":0.0208,"Sugar":0.025,"kcal":0.31,"Solids":0.054300000000000015},\
 "Coffee Beans":{"Solids":1,"kcal":0.01},\
 "Condensed Milk Sweet":{"Water":0.2716,"Fat":0.087,"Sugar":0.544,"kcal":3.21,"Solids":0.7283999999999999,"PAC":0.58,"POD":0.46},\
@@ -633,7 +754,7 @@ Ingredients = JSON.parse('\
 "Grapes":{"Water":0.8429000000000001,"Fat":0.004699999999999999,"kcal":0.57,"Solids":0.1570999999999999,"PAC":0.293,"POD":0.19},\
 "Guar":{"Water":0.15,"Fat":0.005,"Solids":0.85,"kcal":3.32},\
 "Half and Half":{"Water":0.8057,"Fat":0.115,"Sugar":0.041299999999999996,"kcal":1.31,"PAC":0.04133622807017544,"POD":0.006607999999999999,"Solids":0.19430000000000003,"MSNF":0.07930000000000002},\
-"Hazelnut Paste (pure)":{"Water":0.053099999999999994,"Fat":0.6075,"Sugar":0.0434,"kcal":6.28,"Solids":0.9469,"PAC":0.042,"POD":0.042},\
+"Hazelnut Paste (pure)":{"Water":0.053099999999999994,"Fat":0.6075,"Sugar":0.0434,"kcal":6.28,"Solids":0.9469,"PAC":-0.91,"POD":0.042},\
 "Honey":{"Water":0.171,"Sugar":0.8212,"kcal":3.04,"Solids":0.829,"PAC":1.8,"POD":1.3},\
 "Inulin":{"Sugar":0.1,"Solids":1,"POD":0.1,"kcal":1.4},\
 "Invert Syrup 80%":{"Water":0.2,"Sugar":0.8,"Solids":0.8,"PAC":1.34,"POD":1.04,"kcal":3.24},\
@@ -648,16 +769,16 @@ Ingredients = JSON.parse('\
 "Maltodextrin":{"Solids":1,"PAC":0.29,"POD":0.17,"kcal":3.8},\
 "Mango":{"Water":0.8345999999999999,"Fat":0.0038,"Sugar":0.1366,"kcal":0.6,"Solids":0.1654000000000001,"PAC":0.19692149999999997,"POD":0.16332999999999998},\
 "Maple Syrup":{"Water":0.3239,"Fat":0.0006,"Sugar":0.6046,"kcal":2.6,"Solids":0.6760999999999999,"PAC":0.605,"POD":0.605},\
-"Milk Chocolate":{"Water":0.015,"Fat":0.2966,"Sugar":0.515,"kcal":5.35,"Solids":0.985,"PAC":0.615,"POD":0.53,"MSNF":0.16},\
+"Milk Chocolate":{"Water":0.015,"Fat":0.2966,"Sugar":0.515,"kcal":5.35,"Solids":0.985,"PAC":0.135,"POD":0.53,"MSNF":0.16},\
 "Oranges":{"Water":0.867,"Fat":0.0015,"Sugar":0.0857,"kcal":0.47,"Solids":0.133,"PAC":0.125193,"POD":0.09616},\
 "Papaya":{"Water":0.8806,"Fat":0.0026,"Sugar":0.0782,"kcal":0.43,"PAC":0.14871033333333333,"POD":0.09204000000000001,"Solids":0.11939999999999995},\
 "Passion Fruit":{"Water":0.7293000000000001,"Fat":0.006999999999999999,"Sugar":0.133,"kcal":0.97,"Solids":0.27069999999999994,"PAC":0.214,"POD":0.146},\
 "Peach":{"Water":0.883,"Fat":0.0027,"Sugar":0.0839,"kcal":0.42,"Solids":0.11699999999999999,"PAC":0.11571970175438596,"POD":0.087918},\
 "Pineapple":{"Water":0.86,"Fat":0.0012,"Sugar":0.09849999999999999,"kcal":0.5,"PAC":0.13311416666666667,"POD":0.10805,"Solids":0.14},\
-"Pistachio Paste (pure)":{"Water":0.0437,"Fat":0.4532,"Sugar":0.0766,"kcal":5.6,"Solids":0.9563,"PAC":0.081,"POD":0.075},\
+"Pistachio Paste (pure)":{"Water":0.0437,"Fat":0.4532,"Sugar":0.0766,"kcal":5.6,"Solids":0.9563,"PAC":-0.7,"POD":0.075},\
 "Raspberries":{"Water":0.8575,"Fat":0.006500000000000001,"Sugar":0.044199999999999996,"kcal":0.52,"PAC":0.08206016666666668,"POD":0.05497,"Solids":0.14249999999999996},\
 "Rum 40%":{"Water":0.6659999999999999,"kcal":2.31,"Solids":1.1102230246251565e-16,"PAC":2.97},\
-"Salt":{"Water":0.002,"Solids":0.998},\
+"Salt":{"Water":0.002,"Solids":0.998,"PAC":5.86},\
 "Skim Milk":{"Water":0.9079999999999999,"Fat":0.0008,"Sugar":0.050499999999999996,"kcal":0.34,"Solids":0.09200000000000008,"PAC":0.05054429824561404,"POD":0.008079999999999999,"MSNF":0.09120000000000009},\
 "Sour Cream":{"Water":0.7306999999999999,"Fat":0.1935,"Sugar":0.0341,"kcal":1.98,"Solids":0.2693000000000001,"MSNF":0.075,"PAC":0.032,"POD":0.0051},\
 "Strawberries":{"Water":0.9109999999999999,"Sugar":0.053399999999999996,"Solids":0.08900000000000008,"PAC":0.10055716666666667,"POD":0.098,"kcal":0.31,"Fat":0.0022},\
@@ -729,11 +850,9 @@ class cTarget
         this.Fat = new cTargetValue(fatMin, fatMax);
         this.MSNF = new cTargetValue(msnfMin, msnfMax);
         this.Solids = new cTargetValue(solidsMin, solidsMax);
-        //this.Sugar = sugar;
         this.POD = new cTargetValue(podMin, podMax);
         this.Stabilizer = new cTargetValue(stabilizerMin, stabilizerMax);
     }
-    //get TotalSolids() { return this.msnf + this.solids; }
 }
 var Targets = {};
 
@@ -773,7 +892,7 @@ document.getElementById("btnDownload").onclick = () => {
                  + docBackup.slice(pos_end);
     var link = document.createElement( 'a' );
     link.setAttribute( 'href', URL.createObjectURL( new Blob( [ string ], {type: 'text/html'})));
-    link.setAttribute( 'download', document.title + ".html" );
+    link.setAttribute( 'download', "IceEd.html" );
     clickOn(link);
 };
 
@@ -788,12 +907,15 @@ document.getElementById("btnDownload").onclick = () => {
 
 var RecipeBackup = []; // backups recipe states on optimization
 var RecipeStack = {};  // keeps previous recipes when loading or creating new recipes
+var sortBy = null;
+var sortAsc = false;
 
+document.getElementById("JavscriptWarning").style = "display: none;";
 var slServingTemperature = document.getElementById("slServingTemperature");
 slServingTemperature.value = -18;
 slServingTemperature.oninput = function()
 {
-    document.getElementById("lbServingTemperature").innerHTML = this.value + "°C";
+    document.getElementById("lbServingTemperature").innerHTML = this.value + "&nbsp;°C";
     Recipe.ServingTemperature = toFloat(this.value);
     SetRecipeModified();
     UpdateRecipeSums();
@@ -802,10 +924,59 @@ var slHardness = document.getElementById("slHardness");
 slHardness.value = 75;
 slHardness.oninput = function()
 {
-    document.getElementById("lbHardness").innerHTML = this.value + "%";        
+    document.getElementById("lbHardness").innerHTML = this.value + "&nbsp;%";        
     Recipe.Hardness = toFloat(this.value) / 100.0;
     SetRecipeModified();
     UpdateRecipeSums();
+};
+var slOverrun = document.getElementById("slOverrun");
+slOverrun.value = 0.3;
+slOverrun.oninput = function()
+{
+    var overrun = toFloat(this.value) / this.max ;
+    overrun *= overrun * 1.5;
+    document.getElementById("lbOverrun").innerHTML = Math.round(overrun*100.) + "&nbsp;%";        
+    Recipe.Overrun = overrun;
+    SetRecipeModified();
+    UpdateRecipeInfo();
+};
+
+var scoopSizes = [];
+const sccopsPerQuart = [4, 5, 6, 8, 10, 12, 14, 16, 20, 24, 30, 36, 40, 50, 60, 70, 100];
+const scoopsPerLiter = [4, 5, 6, 7, 8, 9, 10, 12, 16, 20, 22, 24, 30, 36, 40, 45, 50, 55, 60, 65, 70, 85, 100];
+for(const v of scoopsPerLiter)
+{
+    const ccmm = 1000000. / v;
+    scoopSizes.push({
+        Size: 2. * Math.cbrt(6.*ccmm/(4.*Math.PI)),
+        ML: ccmm * 0.002,
+        LabelHTML: "<sup>1</sup>&frasl;<sub>" + v + "</sub>&nbsp;L"
+    });
+}
+for(var v of sccopsPerQuart)
+{
+    const ccmm = 0.946353 * 1000000. / v;
+    scoopSizes.push({
+        Size: 2. * Math.cbrt(6.*ccmm/(4.*Math.PI)),
+        ML: ccmm * 0.002,
+        LabelHTML: "<sup>1</sup>&frasl;<sub>" + v + "</sub>&nbsp;qt"
+    });
+}
+scoopSizes.sort((a,b) => {return a.Size > b.Size ? 1 : -1;});
+
+var slScoopSize = document.getElementById("slScoopSize");
+slScoopSize.max = scoopSizes.length - 1;
+slScoopSize.value = 24;
+slScoopSize.oninput = () =>
+{
+    const index = toFloat(slScoopSize.value);
+    document.getElementById("lbScoopSize").innerHTML = 
+          '<table class="layout" style="display:inline;""><tbody><tr>'
+        + '<td style="width: 3.75em; padding-top: 0px; text-align: left;">' + scoopSizes[index].LabelHTML + '</td>'
+        + '<td style="color: var(--mid-grey); padding-top: 0px;">' + Math.round(scoopSizes[index].Size) + "&nbsp;mm&ensp;" + Math.round(scoopSizes[index].ML) + '&nbsp;ml</td>'
+        + '</tr></tbody></table>';
+   
+    UpdateRecipeInfo();
 };
 
 var tgtSelection = document.getElementById('tgtSelection');
@@ -832,6 +1003,7 @@ class cRecipe
         this.Type = tgtSelection.value;
         this.ServingTemperature = slServingTemperature.value;
         this.Hardness = slHardness.value / 100.0;
+        this.Overrun = 0.3;
         this.Ingredients = [];
     }
     static copyFrom(original)
@@ -885,13 +1057,18 @@ document.getElementById("edRecipeName").oninput = (event) =>
 };
 document.getElementById( 'taRecipeNotes' ).oninput = (event) =>
 {
-    Recipe.Notes = event.target.value;
+    if( event.target.innerHTML === "<br>") // remove the remaining line break, so the field is empty and css placeholder is displayed again
+        event.target.innerHTML = "";
+    Recipe.Notes = event.target.innerHTML;
     SetRecipeModified();
 };
 
-// Open tab from anchor
-clickOn( document.getElementById("tabbar").firstElementChild ); // select first tab
+// select first tabs
+clickOn( document.getElementById("tabbar").firstElementChild );
+clickOn( document.getElementById("ToolTabBar").firstElementChild );
+
 SetRecipeModified(false);
+slScoopSize.oninput();
 
 function SetRecipeModified(modified = true)
 {
@@ -966,12 +1143,52 @@ function DisplayBackupList()
 function RestoreBackup(recipeName)
 {
     BackupRecipe( Recipe );
+    sortBy = null;
 
     Recipe = cRecipe.copyFrom( RecipeStack[recipeName].Recipe );
     DisplayRecipe();
     SetRecipeModified( RecipeStack[recipeName].Modified );
     delete RecipeStack[recipeName];
     DisplayBackupList();
+}
+
+function SortRecipe(event = null)
+{
+    if( event !== null)
+    {
+        var sortStr = event.target.innerText;
+        if( /^.* [▲▼]$/.test( sortStr ))
+            sortStr = sortStr.slice(0, -2);
+
+        if( sortStr === sortBy )
+            sortAsc ^= true;
+        sortBy = sortStr;
+    }
+
+    var cmp = null;
+    switch( sortBy )
+    {
+    case "Name": 
+        cmp = function(a, b){ return a.Name < b.Name; };
+        break;
+    case "Amount": 
+    case "Scale to":
+        cmp = function(a, b){ return a.Amount > b.Amount; };
+        break;
+    default:
+        if( RecipeDataColumns.includes( sortBy ))
+            cmp = function(a, b){
+                return  (Ingredients[a.Name].hasOwnProperty(sortBy) ? Ingredients[a.Name][sortBy] * a.Amount : 0.0)
+                      > (Ingredients[b.Name].hasOwnProperty(sortBy) ? Ingredients[b.Name][sortBy] * b.Amount : 0.0)
+                  };
+    }
+
+    if( cmp !== null )
+    {
+        const asc = sortAsc ? 1 : -1;
+        Recipe.Ingredients.sort( (a,b) => {return cmp(a, b) ? asc : -asc});
+    }
+    DisplayRecipe();
 }
 
 function CreateRecipeRow(ingredientNames = null)
@@ -1005,7 +1222,7 @@ function CreateRecipeRow(ingredientNames = null)
     input.min = 0;
     input.step = 'any';
     input.oninput = onIngredientAmountEdited;
-    input.onkeypress = filterNumberInput;
+    input.onkeypress = filterPosNumberInput;
     input.pattern = '[0-9]+([\.,][0-9]+)?';
     cell.appendChild(input);
     row.appendChild(cell);
@@ -1018,7 +1235,7 @@ function CreateRecipeRow(ingredientNames = null)
     input.type = 'number';
     input.min = 0.001;
     input.step = 'any';
-    input.onkeypress = filterNumberInput;
+    input.onkeypress = filterPosNumberInput;
     input.onkeyup = onScaleInputKeyUp;
     input.pattern = '[0-9]+([\.,][0-9]+)?';
     cell.appendChild(input);
@@ -1046,11 +1263,13 @@ function DisplayRecipe()
 {
     document.getElementById("edRecipeName").value = Recipe.Name;
     tgtSelection.value = Recipe.Type;
-    document.getElementById( 'taRecipeNotes' ).value = Recipe.Notes;
+    document.getElementById( 'taRecipeNotes' ).innerHTML = Recipe.Notes;
     slServingTemperature.value = Recipe.ServingTemperature;
     slHardness.value = Recipe.Hardness * 100;
+    slOverrun.value = round( Math.sqrt( Recipe.Overrun / 1.5 ) * slOverrun.max);
     slServingTemperature.oninput(); // update display value
     slHardness.oninput();
+    slOverrun.oninput();
 
     var table = document.createElement('table');
 
@@ -1060,9 +1279,12 @@ function DisplayRecipe()
     for( const columnName of RecipeColumns )
     {
         var cell = document.createElement('th');
-        cell.appendChild(document.createTextNode(columnName));
+        cell.innerHTML = columnName;
+        if( columnName === sortBy )
+            cell.innerHTML += '<span class="noprint">' + (sortAsc ? " ▲" : " ▼") + '</span>';
         if( columnName == "Scale to")
             cell.hidden = true;
+        cell.onclick = SortRecipe;
         row.appendChild(cell);
     }
     tableHead.appendChild(row);
@@ -1085,12 +1307,10 @@ function DisplayRecipe()
     row.Name = "";
     row.childNodes[0].firstChild.value = "";
     tableBody.appendChild( row );
-
     table.appendChild(tableBody);
 
     // --- table foot ---
-    var tableFoot = document.createElement('tfoot');
-    
+    var tableFoot = document.createElement('tfoot');    
     table.appendChild(tableFoot);
     
     table.id = "tblRecipe";
@@ -1112,7 +1332,8 @@ function UpdateRecipeRow(row, index = undefined)
         var cell = row.childNodes[i];
         if( RecipeDataColumns.includes(cell.name))
         {
-            if( Ingredients[row.Name].hasOwnProperty( cell.name ) && Ingredients[row.Name][cell.name] > 0 )
+            
+            if( Ingredients[row.Name].hasOwnProperty( cell.name ) && Math.abs( Ingredients[row.Name][cell.name] ) > 0 )
             {
                 cell.textContent = round( Ingredients[row.Name][cell.name] * recipeIngredient.Amount );
             }else{
@@ -1210,6 +1431,10 @@ function onRecipeScaled()
         tgtScale = Recipe.Amount * inputs[0].Value / Recipe.Ingredients[inputs[0].Index].Amount;
     }else{
         tgtScale = toFloat(document.getElementById("edTargetWeight").value);
+        if( document.getElementById("selTargetWeightMode").value == "Scoops" )
+            tgtScale = LToG( (tgtScale * scoopSizes[toFloat(slScoopSize.value)].ML * 0.001) / (1. + Recipe.Overrun));
+        else if( document.getElementById("selTargetWeightMode").value == "L" )
+            tgtScale = LToG( tgtScale / (1. + Recipe.Overrun));
     }
 
     if( isNaN( tgtScale ))
@@ -1223,7 +1448,8 @@ function onRecipeScaled()
     }else{
         Recipe.Amount = tgtScale;
         document.getElementById('cbxScaleByIngredient').checked = false;
-        document.getElementById('edTargetWeight').disabled = false;        
+        document.getElementById('edTargetWeight').disabled = false;
+        document.getElementById('selTargetWeightMode').disabled = false;        
         document.getElementById('edTargetWeight').value = "";
         DisplayRecipe();
         SetRecipeModified();
@@ -1273,9 +1499,16 @@ function UpdateRecipeSums()
                 {
                     const err = tgtType[columnName].getRangeError(sums.Amount, sums[columnName]);
                     
-                    cells[2].innerHTML = round(err * 100.0)+ " %";
+                    cells[2].innerHTML = round(err * 100.0)+ "&nbsp;%";
                     const hue = (1.0 - Math.max(Math.min((err - 0.05)*1.66, 1.0), 0.0)) * 120.0; // scale to hue values: 0% err gree, 33% err: yellow, 66% error: red
                     cells[2].style = "background-color: hsl(" + hue + ", 100%, 75%);";
+                    if( err > 0. )
+                    {
+                        if( tgtValue > sums[columnName])
+                            cells[0].innerHTML += "<span class='noprint'>&nbsp;▲</span>";
+                        else if(tgtValue < sums[columnName])
+                            cells[0].innerHTML += "<span class='noprint'>&nbsp;▼</span>";
+                    }
                 }
             }
         }else if( columnName == "Name" )
@@ -1296,9 +1529,31 @@ function UpdateRecipeSums()
 
     document.getElementById('btnScale').onclick = onRecipeScaled;
     document.getElementById('cbxScaleByIngredient').checked = scaleByIngredient;
-    document.getElementById('RecipeInfo').innerHTML = "<b>Info</b><br>" + ((sums.kcal > 0 && sums.Amount > 0 ) ? round( sums.kcal/sums.Amount * 100.0) : 0) + " kcal/100g";
 
+    UpdateRecipeInfo( sums );
     DrawFreezingGraph( sums.Water, sums.PAC, sums.MSNF );
+}
+
+function UpdateRecipeInfo(sums = null)
+{
+    if( sums === null )
+        sums = Recipe.Sums;
+    if( sums.Amount > 0 )
+    {
+        const scoop = scoopSizes[toFloat(slScoopSize.value)];
+        const base = gToL( sums.Amount );
+        const total = base * (1. + Recipe.Overrun);
+        const scoops = (total * 1000.) / scoop.ML;
+
+        document.getElementById('RecipeInfo').innerHTML = "<b>Info</b><br>"
+         + ((sums.kcal > 0) ? round( sums.kcal/sums.Amount * 100.0) : 0) + "&nbsp;<sup>kcal</sup>&frasl;<sub>100&nbsp;g</sub>"
+         + "<span class='noprint'><br>" + ((sums.kcal > 0) ? round( sums.kcal/sums.Amount * LToG(0.001 * scoop.ML / (1. + Recipe.Overrun)) ) : 0) + "&nbsp;<sup>kcal</sup>&frasl;<sub>Scoop</sub></span><br>"
+         + round(base) + "&nbsp;L&nbsp;Base<br>"
+         + round(total) + "&nbsp;L&nbsp;Ice&nbsp;Cream"
+         +"<span class='noprint'><br>" + Math.round(scoops) + "&nbsp;Scoops</span><br>";
+    }
+    else
+        document.getElementById('RecipeInfo').innerHTML = "";
     CheckRecipe(sums);
 }
 
@@ -1330,6 +1585,10 @@ function CheckRecipe(sums)
     if( sugarsUsed == 1 )
         hints.push("Using a mixture of different sugars will help to balance sweetness and freezing point depression.");
 
+    // gelato overrun
+    if( Recipe.Type == "Gelato" && Recipe.Overrun >= 0.355 )
+        hints.push("For gelato overrun should be less than 35%.");
+
     if( hints.length > 0 )
     {
         var html = "<b>Hints</b><br><ul>";
@@ -1342,6 +1601,7 @@ function CheckRecipe(sums)
 function ToggleIngredientScale(event)
 {
     document.getElementById('edTargetWeight').disabled = event.srcElement.checked;
+    document.getElementById('selTargetWeightMode').disabled = event.srcElement.checked;
     document.getElementById('RecipeData').querySelectorAll('tr>*:nth-child(3)').forEach( cell => {
         cell.hidden = !event.srcElement.checked;
     });
@@ -1432,7 +1692,7 @@ function OptimizeRecipe(OptimizeForMean = true)
     // scale to original volume
     var scaledAmount = 0;
     for( const i of adjustmentIndizes)
-        scaledAmount += Recipe.Ingredients[i].Amount ;
+        scaledAmount += Recipe.Ingredients[i].Amount;
     const unscaledAmount = Recipe.Amount - scaledAmount;
     const targetAmount = localBackup.Amount - unscaledAmount;
     const factor = targetAmount / scaledAmount;
@@ -1451,7 +1711,7 @@ function OptimizeRecipe(OptimizeForMean = true)
         RecipeBackup.push( cRecipe.copyFrom( localBackup ));
 
     document.getElementById("btnRestoreRecipe").disabled = RecipeBackup.length == 0;
-    DisplayRecipe();
+    
    
    // display comparision table
     if(rowCount > 0)
@@ -1476,7 +1736,6 @@ function OptimizeRecipe(OptimizeForMean = true)
             const changed = Recipe.Ingredients[i].Amount;
 
             tr = document.createElement('tr');
-            //table.appendChild(tr);
             var cells = [...nGenerator(3, () => {return document.createElement('td');})];
             cells[0].innerText = Recipe.Ingredients[i].Name;
             cells[1].innerText = round( old );
@@ -1488,8 +1747,18 @@ function OptimizeRecipe(OptimizeForMean = true)
             tbody.appendChild(tr);
         }
         table.appendChild(tbody);
-        showModal(table);
-    }
+
+        var buttonBar = document.createElement("div");
+        var button = document.createElement('button');
+        button.innerText = "Close";
+        button.onclick = function(){ 
+            SortRecipe();
+            hideModal();
+        };
+        buttonBar.appendChild(button);
+        showModal(table, buttonBar);
+    }else
+        SortRecipe();
         
 }
 
@@ -1569,7 +1838,7 @@ function DrawFreezingGraph( Water, PAC, MSNF )
     if( !this.hasOwnProperty( "NotesInitialized" )) // set only on first execution
     {
         this.NotesInitialized = true;
-        document.getElementById( 'taRecipeNotes' ).style = "width: " + (canvas.width - 2*offX) + "px; height: " + (canvas.height - 2*offY) + "px;";
+        document.getElementById( 'taRecipeNotes' ).style = "width: " + (canvas.width - 2*offX) + "px; margin-top: " + (offY - 1) + "px;";
     }
 
     var ctx = canvas.getContext('2d');
@@ -1681,6 +1950,7 @@ document.getElementById( 'btnNewRecipe' ).onclick = () => {
     BackupCurrentRecipe();
     Recipe = new cRecipe("");
     RecipeBackup = [];
+    sortBy = null;
     DisplayRecipe();
     document.getElementById("edRecipeName").focus();
     SetRecipeModified(false);
@@ -1777,6 +2047,8 @@ document.getElementById( 'inputLoadRecipe' ).onchange = (event) =>
 
             RecipeBackup = [];
             Recipe = new cRecipe("");
+            sortBy = null;
+            
             for( const key in Recipe )
             {
                 if( dataObj.data.Recipe.hasOwnProperty( key ))
@@ -1833,7 +2105,15 @@ document.getElementById( 'btnPrintRecipe' ).onclick = () => {
 document.getElementById( 'btnCategorizeRecipe' ).onclick = CategorizeRecipe;
 
 document.getElementById( 'edTargetWeight' ).onkeyup = onScaleInputKeyUp;
-document.getElementById( 'edTargetWeight' ).onkeypress = filterNumberInput;
+document.getElementById( 'edTargetWeight' ).onkeypress = filterPosNumberInput;
+
+document.getElementById( 'selTargetWeightMode' ).onchange = () => {
+    var sel = document.getElementById( 'edTargetWeight' );
+    sel.focus();
+    sel.select();    
+};
+
+
 document.getElementById( 'btnOptimizeMean' ).onclick = OptimizeRecipe;
 document.getElementById( 'btnOptimizeRange' ).onclick = () => { OptimizeRecipe(false)};
 document.getElementById( 'btnRestoreRecipe' ).onclick = RestoreRecipe;
@@ -1845,7 +2125,19 @@ document.getElementById( 'btnRestoreRecipe' ).disabled = true;
 // --- Ingredients -----------------------------------------------------------
 
 document.getElementById( 'btnSaveIngredients' ).onclick = () => {
-    saveToFile(Ingredients, "Ingredients.iei", "IEI", 1, (key, value) => { return value == 0.0 ? undefined : value; });
+    const headerObj = {
+        id: "IEI", 
+        version: 1, 
+        data:"$DATA$"
+    };
+    const content = JSON.stringify( Ingredients, (key, value) => { return value == 0.0 ? undefined : value; }, " ").replaceAll('\n', '').replaceAll('},', "},\n");
+    var link = document.createElement( 'a' );
+    link.setAttribute( 'href', URL.createObjectURL( new Blob( [ JSON.stringify( headerObj, null, '\t').replace( "\"$DATA$\"", '\n' + content) ], {
+        type: 'application/octet-stream'
+    })));
+    link.setAttribute( 'download', 'Ingredients.iei' );
+    clickOn(link);
+
 };
 document.getElementById( 'btnLoadIngredients' ).onclick = (event) => { clickOn(document.getElementById("inputLoadIngredients")); };
 document.getElementById( 'inputLoadIngredients' ).onchange = (event) =>
@@ -1905,7 +2197,7 @@ function importIngredients(dataObj, overrideExisting = false, mergeMessageMtml= 
         {
             Ingredients[key] = dataObj[key];
         }else{
-            const diff = diffIngredients(Ingredients[key], dataObj[key]); // diff ingredient and add to merge list if not equal
+            const diff = diffIngredients(Ingredients[key], dataObj[key]);// diff ingredient and add to merge list if not equal
             if( !objIsEmpty(diff))
                 mergeList[key] = diff;
         }
@@ -2178,7 +2470,7 @@ function onDownloadIngredientData(element)
             var dataObj = JSON.parse( this.responseText );
             var query = dataObj.foodSearchCriteria.query;
 
-            if( dataObj.totalHits == 0 ) // try to search again 
+            if( dataObj.totalHits == 0 ) // search again
             {
                 query = query.substring(0, query.lastIndexOf(" "));
                 if( query.length > 1 )
@@ -2361,12 +2653,16 @@ function createIngredientRow(name = "", ingredient = null)
         input.name = columnName;
         input.placeholder = columnName;
         input.oninput = onIngredientEdit;
-
-        if( typeof value == "number" )
+        if( typeof value === "number" )
         {
             input.value = round(value * 100.);
-            input.onkeypress = filterNumberInput;
-            input.pattern = "[0-9]+([\.,][0-9]+)?";                            
+            input.onkeypress = filterPosNumberInput;
+            input.pattern = "[0-9]+([\.,][0-9]+)?";
+            if( columnName === "PAC" )
+            {
+                input.onkeypress = filterNumberInput;
+                input.pattern = "-?" + input.pattern;
+            }
             input.step = "any";
             if( value == 0.0 )
                 input.value = null;
@@ -2507,66 +2803,78 @@ function UpdateSugarSums()
         pacSum += 342.3 / Sugars[sugar][0] * floatValue;
         podSum += Sugars[sugar][1] * floatValue;
     }
-    table.tFoot.firstElementChild.childNodes[1].innerText = round(percentSum) + " %";
+    table.tFoot.firstElementChild.childNodes[1].innerText = round(percentSum) + "&nbsp;%";
     table.tFoot.firstElementChild.childNodes[2].innerText = round(pacSum);
     table.tFoot.firstElementChild.childNodes[3].innerText = round(podSum / 100.0);
     if(percentSum > 100)
-        Warning("Sum exceeds 100%");
+        Warning("Sum exceeds 100&nbsp;%");
 }
 
-document.getElementById("PacPodCalculator").appendChild(function(){
-    var pacPodTable = document.createElement('table');
-    pacPodTable.id = "pacPodTable";
-
-    var th  = document.createElement("thead");
-    var tr = document.createElement('tr');
-    for( name of ["Name", "%", "PAC", "POD"])
-    {
-        var cell = document.createElement('th');
-        cell.innerText = name;
-        tr.appendChild(cell);
-    }
-    th.appendChild(tr);
-    pacPodTable.appendChild(th);
-    var tbody = document.createElement("tbody");
-
-    for( const sugar in Sugars )
-    {
-        tr = document.createElement('tr');
-        var cells = [...nGenerator(4, () => {return document.createElement('td');})];
-        cells[0].innerText = sugar;
-
-        input = document.createElement('input');
-        input.name = 'Percentage';
-        input.placeholder = '%';
-        input.type = 'number';
-        input.min = 0;
-        input.max = 100;
-        input.step = 'any';
-        input.oninput = onSugarAmountEdited;
-        input.onkeypress = filterNumberInput;
-        input.pattern = '[0-9]+([\.,][0-9]+)?';
-        input.lastValue = 0;
-        cells[1].appendChild(input);
-
-        for( const cell of cells )
-            tr.appendChild(cell);
-        tbody.appendChild(tr);
-    }
-    pacPodTable.appendChild(tbody);
-
-    var tableFoot = document.createElement('tfoot');
-    var row = document.createElement('tr');
-    for( var i = 0; i < 4; ++i )
-        row.appendChild(document.createElement('th'));
-    row.firstChild.innerText = "Sum";
-    tableFoot.appendChild(row);
-    
-    pacPodTable.appendChild(tableFoot);
-    return pacPodTable;
-}());
-
 {
+var pacPodCalc = document.getElementById("PacPodCalculator");
+var pacPodTable = document.createElement('table');
+pacPodTable.id = "pacPodTable";
+
+var th  = document.createElement("thead");
+var tr = document.createElement('tr');
+for( name of ["Name", "%", "PAC", "POD"])
+{
+    var cell = document.createElement('th');
+    cell.innerText = name;
+    tr.appendChild(cell);
+}
+th.appendChild(tr);
+pacPodTable.appendChild(th);
+var tbody = document.createElement("tbody");
+
+for( const sugar in Sugars )
+{
+    tr = document.createElement('tr');
+    var cells = [...nGenerator(4, () => {return document.createElement('td');})];
+    cells[0].innerText = sugar;
+
+    input = document.createElement('input');
+    input.name = 'Percentage';
+    input.placeholder = '%';
+    input.type = 'number';
+    input.min = 0;
+    input.max = 100;
+    input.step = 'any';
+    input.oninput = onSugarAmountEdited;
+    input.onkeypress = filterPosNumberInput;
+    input.pattern = '[0-9]+([\.,][0-9]+)?';
+    input.lastValue = 0;
+    cells[1].appendChild(input);
+
+    for( const cell of cells )
+        tr.appendChild(cell);
+    tbody.appendChild(tr);
+}
+pacPodTable.appendChild(tbody);
+
+var tableFoot = document.createElement('tfoot');
+var row = document.createElement('tr');
+for( var i = 0; i < 4; ++i )
+    row.appendChild(document.createElement('th'));
+row.firstChild.innerText = "Sum";
+tableFoot.appendChild(row);
+
+pacPodTable.appendChild(tableFoot);
+pacPodCalc.appendChild(pacPodTable);
+
+pacPodCalc.appendChild(document.createElement('br'));
+var btnReset = document.createElement('button');
+btnReset.innerText = "Reset";
+btnReset.onclick = () => {
+    var inputs = pacPodTable.getElementsByTagName("input");
+    for( var input of inputs )
+        input.value = "";
+    UpdateSugarSums();
+    inputs[0].focus();
+};
+pacPodCalc.appendChild(btnReset);
+
+
 var edGMolCalculator = document.getElementById("edGMolCalculator");
 edGMolCalculator.lastValue = 0;
 edGMolCalculator.oninput = function()
@@ -2587,10 +2895,191 @@ edGMolCalculator.oninput = function()
     this.lastValue = this.value;
     document.getElementById("GMolResult").innerText = "PAC: " + round( 342.3 / floatValue * 100.0 );
 };
-edGMolCalculator.onkeypress = filterNumberInput;
+edGMolCalculator.onkeypress = filterPosNumberInput;
+
+
+
+var eggTypes = {};
+eggTypes["Bulk"] = 100;
+eggTypes["CD/US Jumbo"] = 70;
+eggTypes["CD/US XL"] = 63;
+eggTypes["CD/US L"] = 56;
+eggTypes["CD/US M"] = 49;
+eggTypes["CD/US S"] = 42 ;
+eggTypes["EU XL"] = 78;
+eggTypes["EU L"] = 68;
+eggTypes["EU M"] = 58;
+eggTypes["EU S"] = 48;
+eggTypes["GOST В"] = 80;
+eggTypes["GOST О"] = 70;
+eggTypes["GOST 1"] = 60;
+eggTypes["GOST 2"] = 50;
+eggTypes["GOST 3"] = 40;
+eggTypes["AU King-Size"] = 73;
+eggTypes["AU Jumbo"] = 68;
+eggTypes["AU XL"] = 60;
+eggTypes["AU L"] = 52;
+eggTypes["AU M"] = 43 ;
+eggTypes["NZ Jumbo"] = 68;
+eggTypes["NZ Large"] = 62;
+eggTypes["NZ Standard"] = 53;
+eggTypes["NZ Medium"] = 44;
+eggTypes["NZ Pullet"] = 35 ;
+eggTypes["BRA Jumbo"] = 70;
+eggTypes["BRA Extra"] = 62.5;
+eggTypes["BRA L"] = 57.5;
+eggTypes["BRA M"] = 52.5;
+eggTypes["BRA S"] = 47.5;
+eggTypes["BRA Industrial"] = 42.5;
+
+class cEgg
+{
+    constructor( weight )
+    {
+        this.m_Number = 1.;
+        this.m_Weight = weight;
+        this.Factors = {
+            Number: 0.0,
+            Total: 1.0,
+           // Shell: 0.085,
+            Liquids: 0.915,
+            White: 0.915*(2./3.),
+            Yolk:  0.915*(1./3.),
+            Lecithin: 0.915*(1./3.)*0.075,
+            Mixture: 0.915*(1./3.)*0.075*(1/0.0025)
+        };
+    }
+    Get( key )
+    {
+        if( !this.Factors.hasOwnProperty( key ))
+        {
+            console.assert(false);
+            return 0.;
+        }else if( key == "Number")
+            return this.m_Number;
+
+        return this.m_Number * this.Factors[key] * this.m_Weight;
+    }
+    Set( key, value )
+    {
+        if( !this.Factors.hasOwnProperty( key ))
+        {
+            console.assert(false);
+            return;
+        }else if( key == "Number")
+            this.m_Number = value;
+        else
+            this.m_Number = value / (this.Factors[key] * this.m_Weight);
+    }
 }
 
 
+var yolkCalc = document.getElementById("YolkCalculator");
+var yolkTable = document.createElement('table');
+yolkTable.id = "yolkTable";
+
+var tbody = document.createElement("tbody");
+
+tr = document.createElement('tr');
+var cells = [...nGenerator(2, () => {return document.createElement('td');})];
+cells[0].innerHTML = '<label for="selEggType">Egg Type </label>';
+var selEggType = document.createElement('select');
+selEggType.id = "selEggType";
+for( const key in eggTypes )
+{
+    var option = document.createElement('option');
+    option.value = eggTypes[key];
+    option.text  = key + " - " + eggTypes[key] + " g";
+    selEggType.appendChild(option);
+}
+selEggType.value = 56;
+cells[1].appendChild(selEggType);
+for( const cell of cells )
+    tr.appendChild(cell);
+tbody.appendChild(tr);
+
+var Egg = new cEgg( selEggType.value );
+for( const key in Egg.Factors )
+{
+    tr = document.createElement('tr');
+    var cells = [...nGenerator(2, () => {return document.createElement('td');})];
+    cells[0].innerText = key;
+
+    input = document.createElement('input');
+    input.name = key;
+    input.placeholder = key + ' g';
+    input.type = 'number';
+    input.min = 0;
+    input.step = 'any';
+    input.pattern = '[0-9]+([\.,][0-9]+)?';
+    input.oninput = EggValueChanged;
+    input.onkeypress = filterPosNumberInput;
+    cells[1].appendChild(input);
+
+    for( const cell of cells )
+        tr.appendChild(cell);
+    if( key == "Mixture")
+    {
+        var cell =  document.createElement('td');
+        var btn =   document.createElement('button');
+        btn.innerText = "From Recipe";
+        btn.onclick = () => {
+            Egg.Set("Mixture", Recipe.Sums.Amount);
+            UpdateEggYolkValues();
+        };
+        btn.style = "margin-right: 0.66em;";
+        cell.appendChild(btn);
+        btn =   document.createElement('button');
+        btn.innerText = "To Recipe";
+        btn.onclick = () => {
+            const value = Egg.Get("Mixture");
+            Recipe.Amount = value;
+            Info("Recipe scaled to " + round(value) + " g");
+        };
+        cell.appendChild(btn);
+
+        tr.appendChild(cell);
+    }
+
+    tbody.appendChild(tr);
+}
+yolkTable.appendChild(tbody);
+yolkCalc.appendChild(yolkTable);
+
+function InitYolkTable()
+{
+    var inputs = yolkTable.getElementsByTagName( "input" );
+    // for( const input of [...inputs])
+    //     console.log( input.value );
+    if( [...inputs].every( input => { return input.value == "";}))
+    {
+        //var Mixture = yolkTable.querySelector( "input[name='Mixture']");
+        Egg.Set("Mixture", Recipe.Sums.Amount);
+        UpdateEggYolkValues();
+    }
+
+}
+
+selEggType.onchange = function(event)
+{
+    const total = Egg.Get("Total");
+    Egg.m_Weight = toFloat( event.target.value );
+    Egg.Set("Total", total);
+    UpdateEggYolkValues();
+};
+function EggValueChanged(event)
+{
+    Egg.Set(event.target.name, event.target.value);
+    UpdateEggYolkValues()
+
+}
+function UpdateEggYolkValues()
+{
+    for( var input of yolkTable.getElementsByTagName( "input" ))
+        input.value = round( Egg.Get( input.name ));
+}
+
+}
 
 
 
@@ -2666,7 +3155,7 @@ document.getElementById("Links").appendChild(function(){
 // --- About ------------------------------------------------------------------
 document.getElementById("Version").innerText = "Version: " + VERSION;
 
-document.getElementById("btnCheckUpdate").onclick = () => {
+document.getElementById("btnCheckUpdate").onclick = function( event ) {
     class cVersion
     {
         constructor( versionStr )
@@ -2690,31 +3179,52 @@ document.getElementById("btnCheckUpdate").onclick = () => {
         }
     }
 
-    const repo = "https://api.github.com/repos/JoernMueller/Ice-Ed/releases/latest";
-    httpRequest = new XMLHttpRequest();
-    httpRequest.onreadystatechange = () => {
-        if( httpRequest.readyState === XMLHttpRequest.DONE )
-        {
-            if( httpRequest.status === 200 )
-            {
-                const releaseInfo = JSON.parse( httpRequest.responseText );
-                const current = new cVersion( VERSION );
-                const latest = new cVersion( releaseInfo.tag_name );
-                if( latest.isNewerThan( current ))
-                {
-                    document.getElementById("VersionInfo").innerHTML = 'A newer version <a target="_blank" rel="noopener noreferrer" href="' + releaseInfo.html_url + '">'
-                    + releaseInfo.tag_name + '</a> is available since '+ (new Date(releaseInfo.published_at)).toLocaleDateString();
-                }if( latest.isEqual( current ))
-                {
-                    document.getElementById("VersionInfo").innerHTML = "You are using the latest release.";
-                }
-            }else            
-                ErrorMsg( "Failed to get data. HTTP Status: " + httpRequest.status );
-        }
 
-    };
-    httpRequest.open('GET', repo);
-    httpRequest.send();
+    if( event.target.innerText === "Download" && typeof event.target.downloadLink === "string" )
+    {
+        httpRequest = new XMLHttpRequest();
+        httpRequest.onreadystatechange = () => {
+            if( httpRequest.readyState === XMLHttpRequest.DONE && httpRequest.status === 200 )
+            {
+                var link = document.createElement( 'a' );
+                link.setAttribute( 'href', URL.createObjectURL( new Blob( [ httpRequest.responseText ], {
+                    type: 'text/html'
+                })));
+                link.setAttribute( 'download', "Ice-Ed.html" );
+                clickOn(link);
+            }
+        };
+        httpRequest.open('GET', event.target.downloadLink);
+        httpRequest.send();
+    }else{
+        httpRequest = new XMLHttpRequest();
+        httpRequest.onreadystatechange = () => {
+            if( httpRequest.readyState === XMLHttpRequest.DONE )
+            {
+                if( httpRequest.status === 200 )
+                {
+                    const releaseInfo = JSON.parse( httpRequest.responseText );
+                    const current = new cVersion( VERSION );
+                    const latest = new cVersion( releaseInfo.name );
+                    if( latest.isNewerThan( current ))
+                    {
+                        event.target.innerText = "Download";
+                        event.target.downloadLink = "https://raw.githubusercontent.com/JoernMueller/Ice-Ed/" + releaseInfo.tag_name + "/IceEd.html";
+                        document.getElementById("VersionInfo").innerHTML = 'A newer version <strong>' + releaseInfo.name + '</strong> is available since ' + (new Date(releaseInfo.published_at)).toLocaleDateString()
+                        + '. <a target="_blank" rel="noopener noreferrer" href="' + releaseInfo.html_url + '">Release Info</a>';
+                    }else if( latest.isEqual( current ))
+                    {
+                        document.getElementById("VersionInfo").innerHTML = "You are using the latest release.";
+                    }
+                }else            
+                    ErrorMsg( "Failed to get data. HTTP Status: " + httpRequest.status );
+            }
+
+        };
+        httpRequest.open('GET', "https://api.github.com/repos/JoernMueller/Ice-Ed/releases/latest");
+        httpRequest.send();
+    }
+
 };
 
 {   // add TOC
@@ -2731,6 +3241,9 @@ document.getElementById("btnCheckUpdate").onclick = () => {
 
 
 // --- Helper Methods -----------------------------------------------------------
+
+function gToL(value) { return value / 1100.; }
+function LToG(value ){ return 1100. * value; }
 
 function saveToFile(jsObject, fileName, fileId, fileVersion, replacerFunction=null)
 {
@@ -2751,13 +3264,22 @@ function clickOn(element)
     element.dispatchEvent( event );
 }
 
+function filterPosNumberInput(event)
+{
+    const acceptSeparator = !this.value.includes(decimalSeparator) && !this.value.includes('.');
+    const ASCIICode = event.which ? event.which : event.keyCode;
+    const isSeparator = String.fromCharCode(ASCIICode) === decimalSeparator || String.fromCharCode(ASCIICode) === '.';
+    return    (acceptSeparator && isSeparator)
+           || (ASCIICode >= 48 && ASCIICode <= 57);
+}
 function filterNumberInput(event)
 { 
     const acceptSeparator = !this.value.includes(decimalSeparator) && !this.value.includes('.');
     const ASCIICode = event.which ? event.which : event.keyCode;
     const isSeparator = String.fromCharCode(ASCIICode) === decimalSeparator || String.fromCharCode(ASCIICode) === '.';
     return    (acceptSeparator && isSeparator)
-           || (ASCIICode >= 48 && ASCIICode <= 57);
+           || (ASCIICode >= 48 && ASCIICode <= 57)
+           || (ASCIICode === 45 && event.target.selectionStart === 0); // allow '-' at first position
 }
 
 function showModal(content, buttons=null)
@@ -2836,7 +3358,7 @@ function SetStatusBarMessage(message, timeout = 5, color = '')
 function toFloat(string)
 {
     string = string.replaceAll(decimalSeparator, '.');
-    if( string.match("[0-9]+(\.[0-9]+)?"))
+    if( string.match("-?[0-9]+(\.[0-9]+)?"))
         return Number(string);
     return NaN;
 }
@@ -2845,8 +3367,8 @@ function round(value)
 {
     if( value == 0 )
         return 0;
-    const precision = 2;
-    const decimalShift = Math.max( Math.pow(10, Math.min( precision - Math.floor(Math.log10( value )), 2 )), 1);
+    const precision = 2;    
+    const decimalShift = Math.max( Math.pow(10, Math.min( precision - Math.floor(Math.log10( Math.abs( value ))), 2 )), 1);
     return Math.round(value * decimalShift) / decimalShift;
 }
 
